@@ -46,7 +46,13 @@ class Appartment(): #Maybe break up into different classes. Give better name?
         """
         pass
 
-    def nuemann_dirichlet(self, dir_side, neu_side):
+    def neumann(self):
+        pass
+
+    def dirichlet(self):
+        pass
+
+    def neumann_dirichlet(self, dir_side, neu_side):
         """
         Input: sides is the air on each side of the boundary
         Output: updated air
