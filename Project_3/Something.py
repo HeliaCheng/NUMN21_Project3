@@ -4,13 +4,6 @@ from mpi4py import MPI
 class Appartment(): #Maybe break up into different classes. Give better name?
     def __init__(self, delta_x = 1/20):
         self.delta_x = delta_x
-        self.initial_temp = 20
-        self.u1 = np.ones((int(1/delta_x), int(1/delta_x))) * self.initial_temp #the different rooms, 
-        self.u2 = np.ones((int(1/delta_x), int(2/delta_x))) * self.initial_temp
-        self.u3 = np.ones((int(1/delta_x), int(1/delta_x))) * self.initial_temp
-        self.NW = 15 #heat normal wall
-        self.WH = 40 #heat walls with heater
-        self.WW = 5  #heat wall with bit window
         self.omega = 0.8 #Used in relaxation   
 
 
@@ -61,13 +54,37 @@ class Appartment(): #Maybe break up into different classes. Give better name?
 
 
 class Room():
-    def __init__(self) -> None:
+    def __init__(self, delta_x = 1/20, initial_temp = 20):
+        self.delta_x = delta_x
+        self.initial_temp = initial_temp
+        self.n = int(1/delta_x)
+        self.u1 = np.ones((self.n, self.n)) * self.initial_temp #the different rooms at t = 0 
+        self.u2 = np.ones((self.n, 2*self.n)) * self.initial_temp
+        self.u3 = np.ones((self.n, self.n)) * self.initial_temp
         pass
 
     def define_boundary(self):
         pass
 
 class Boundary():
-    def __init__(self) -> None:
-        self.H = np.zeros(20)*40
+    def __init__(self, delta_x = 1/20) -> None:
+        self.H = 40 #Heated
+        self.WF = 5 #Window
+        self.NW = 15#Normal
+        self.delta_x = delta_x
+        #Walls room 1:
+        self.north_wall_1 = np.ones(int(1/delta_x)) * self.NW
+        self.east_wall_1 = np.ones(int(1/delta_x)) * self.NW  #Should de pend on room 2
+        self.south_wall_1 = np.ones(int(1/delta_x)) * self.NW
+        self.west_wall_1 = np.ones(int(1/delta_x)) * self.H
+        #Walls room 2:
+        self.north_wall_2 = np.ones(int(1/delta_x)) * self.H
+        self.east_wall_2 = np.ones(int(2/delta_x)) * self.NW #Should partially depend on room 3
+        self.south_wall_2 = np.ones(int(1/delta_x)) * self.WF
+        self.west_wall_2 = np.ones(int(2/delta_x)) * self.NW #Should partially depend on room 1
+        #Walls room 3:
+        self.north_wall_3 = np.ones(int(1/delta_x)) * self.H
+        self.east_wall_3 = np.ones(int(1/delta_x)) * self.H
+        self.south_wall_3 = np.ones(int(1/delta_x)) * self.H
+        self.west_wall_3 = np.ones(int(1/delta_x)) * self.H  #Should de pend on room 2
         pass
