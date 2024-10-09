@@ -1,5 +1,7 @@
 import numpy as np
 from mpi4py import MPI
+from scipy import sparse
+from scipy.sparse.linalg import spsolve
 
 class Appartment(): #Maybe break up into different classes. Give better name?
     def __init__(self, delta_x = 1/20):
@@ -19,10 +21,35 @@ class Appartment(): #Maybe break up into different classes. Give better name?
         """
         pass
 
-    def heat_equation(self):
+    def heat_equation(self, nx, nt, dx, dt, alpha):
         """
         Implements heat equation
-        """
+
+        Args: 
+            nx: Number of spatial points
+            nt: Number of time steps
+            dx:
+            dt:
+            alpha:  Thermal diffusivity
+         """
+
+        #Create sparse matrix
+        diagonals = [-alpha*dt/dx**2, 1+2*alpha*dt/dx**2, -alpha*dt/dx**2]
+        offsets = [-1, 0, 1]
+        A = sparse.diags(diagonals, offsets, shape=(nx, nx), format='csc')[3]
+
+        #Set up Initial and Boundary condition 
+        u = np.zeros(nx)
+        u[0] = 0  # Left boundary
+        u[-1] = 1  # Right boundary
+
+        #Solve the system for each time step
+        for _ in range(nt):
+            b = u.copy()
+            b[0] = 0  # Left boundary
+            b[-1] = 1  # Right boundary
+            u = spsolve(A, b)
+
         pass
 
     def interior(self, room):
