@@ -1,13 +1,20 @@
 {
     "rooms": [
         {
-            "dimensions": [21, 21],
+            "rank": 0,
+            "dim": [1,1],
             "boundary": {
-             "left": ["west", "dirichlet"],
-                "right": ["east", "neumann"],
-                "bottom": ["south", "dirichlet"],
-                "top": ["north", "dirichlet"]
+             "left_b": "dirichlet",
+                "right_b": "neumann",
+                "bottom_b": "dirichlet",
+                "top_b":  "dirichlet"
             },
+          "temperature": {
+            "left_t": "u_heater",
+                "right_t": "u_normal",
+                "bottom_t": "u_normal",
+                "top_t":  "u_normal"
+          },
             "adjacent_rooms": {
                 "right": {
                     "rank": 1,
@@ -18,13 +25,20 @@
             }
         },
         {
-            "dimensions": [41, 21],
+                "rank": 1,
+                "dim": [1,1],
                "boundary" : {
-                "left": ["west", "dirichlet"],
-                "right": ["east", "dirichlet"],
-                "bottom": ["south", "dirichlet"],
-                "top": ["north", "dirichlet"]
+                "left_b": "dirichlet",
+                "right_b": "dirichlet",
+                "bottom_b": "dirichlet",
+                "top_b": "dirichlet"
             },
+          "temperature": {
+            "left_t": "u_normal",
+                "right_t": "u_normal",
+                "bottom_t": "u_window",
+                "top_t":  "u_heater"
+          },
             "adjacent_rooms": {
                 "left": {
                     "rank": 0,
@@ -41,13 +55,20 @@
             }
         },
         {
-            "dimensions": [21, 21],
+              "rank": 2,
+              "dim": [1,1],
              "boundary" : {
-                "left": ["west", "neumann"],
-                "right": ["east", "dirichlet"],
-                "bottom": ["south", "dirichlet"],
-                "top": ["north", "dirichlet"]
+                "left_b": "neumann",
+                "right_b": "dirichlet",
+                "bottom_b": "dirichlet",
+                "top_b": "dirichlet"
             },
+          "temperature": {
+            "left_t": "u_normal",
+                "right_t": "u_heater",
+                "bottom_t": "u_normal",
+                "top_t":  "u_normal"
+          },
             "adjacent_rooms": {
                 "left": {
                     "rank": 1,
