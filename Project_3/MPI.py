@@ -18,7 +18,7 @@ def create_lagrangian_matrix(room, h):
     bottom_b = room.bottom_b
     top_b = room.top_b
 
-    [n,m] = dim/h#
+    [n,m] = [dim[0]/h,dim[1]/h]#
     nm = n * m
 
     A = np.zeros((nm, nm))
@@ -62,7 +62,7 @@ def create_lagrangian_rhs(room, h):
     right_b = room.right_b
     top_b = room.top_b
     bottom_b = room.bottom_b
-    [m,n]=dim*h
+    [m,n]=[dim[0]/h,dim[1]/h]
     mn = m * n
 
     b_matrix = np.zeros((n, m))
@@ -126,15 +126,17 @@ def solve_lagrangian(A, b, n, m):
 
 
 
-class MPI:
-    def __init__(self, h=1 / 20, initial_temp=20, D=0.1,room_list=[]):
+class DN_solver:
+    def __init__(self, h=1 / 20, initial_temp=20, D=0.1,room_list=[],comm,rank):
         self.h = h
         self.D = D
         self.initial_temp = initial_temp
         self.omega = 0.8
         self.room_list=room_list
-
-
+        self.n=int(1/h)
+        self.u1=room_list[0].u
+        self.u2 = room_list[1].u
+        self.u3 = room_list[2].u
 #********************************************************************************************
     def update_walls(self):
         self.east_wall_1 = self.u2[self.n:, 0]
@@ -144,13 +146,13 @@ class MPI:
 
 
 #*********************************************************************************************
-    def step(self):
+    def step(self,room_list,h):
         # Update boundary walls
         self.update_walls()
         # Solve the room with Dirichlet conditions first, then send the Neumann cdt to the other ones.
 
         # Room 2 - the big one
-        A2, b2 = self.create_matrix_and_rhs(2, self.north_wall_2, self.south_wall_2, self.west_wall_2, self.east_wall_2)
+        A2, b2 = self.create_matrix_and_rhs(room_list[1],h)
         un2 = solve_lagrangian(A2, b2, 2 * self.n, self.n)
 
         east_wall1_neumann = -(self.u2[self.n:, 0] - self.u2[self.n:, 1]) / self.delta_x
@@ -170,6 +172,13 @@ class MPI:
         self.u2 = self.omega * un2 + (1 - self.omega) * self.u2
         self.u3 = self.omega * un3 + (1 - self.omega) * self.u3
 
+
+
+
+
+
+
+
     def visualize(self):
         U = np.ones((2 * self.n, 3 * self.n)) * (self.u2.min() + self.u2.max()) / 2
         U[self.n:, :self.n] = self.u1
@@ -181,9 +190,9 @@ class MPI:
 
 
 # Instantiate and run
-MPI = MPI(delta_x=1 / 40, D=0.2)
-MPI.omega = 0.8
+solver = DN_solver(delta_x=1 / 40, D=0.2)
+solver.omega = 0.8
 for i in range(20):
-    MPI.step()
+    solver.step()
 
-MPI.visualize()
+solver.visualize()

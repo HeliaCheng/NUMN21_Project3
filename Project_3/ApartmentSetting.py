@@ -10,7 +10,7 @@ u_dict={
 
 
 class Room:
-    def __init__(self,rank,dim,adjacent_rooms,boundary,temperature):
+    def __init__(self,rank,dim,adjacent_rooms,boundary,temperature,temp_init=20,h=1/20):
         self.rank=rank
         self.dim=dim
         self.adjacent_rooms =adjacent_rooms if adjacent_rooms else {}  # dictionary of adjacent room numbers
@@ -19,7 +19,8 @@ class Room:
                 setattr(self,key,u_dict[value])
         for key,value in boundary.items():
                 setattr(self,key,value)
-
+        self.temp_init=temp_init
+        self.u=np.ones(np.array(np.array(dim)/h).astype(int))*temp_init
 
 def get_config_by_rank(config_file, rank):
     # Load the JSON file
@@ -42,6 +43,6 @@ def get_room_list():
     return room_list
 
 room_list=get_room_list()
-print(room_list[0].top_t)
+print(room_list[0].dim)
 print(room_list)
-
+print(type(room_list[0].u[0][0]))
