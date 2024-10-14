@@ -1,0 +1,62 @@
+{
+    "rooms": [
+        {
+            "dimensions": [21, 21],
+            "boundary": {
+             "left": ["west", "dirichlet"],
+                "right": ["east", "neumann"],
+                "bottom": ["south", "dirichlet"],
+                "top": ["north", "dirichlet"]
+            },
+            "adjacent_rooms": {
+                "right": {
+                    "rank": 1,
+                    "type": "Neumann",
+                    "start_pos": 0,
+                    "end_pos": 21
+                }
+            }
+        },
+        {
+            "dimensions": [41, 21],
+               "boundary" : {
+                "left": ["west", "dirichlet"],
+                "right": ["east", "dirichlet"],
+                "bottom": ["south", "dirichlet"],
+                "top": ["north", "dirichlet"]
+            },
+            "adjacent_rooms": {
+                "left": {
+                    "rank": 0,
+                    "type": "Dirichlet",
+                    "start_pos": 20,
+                    "end_pos": 41
+                },
+                "right": {
+                    "rank": 2,
+                    "type": "Dirichlet",
+                    "start_pos": 0,
+                    "end_pos": 21
+                }
+            }
+        },
+        {
+            "dimensions": [21, 21],
+             "boundary" : {
+                "left": ["west", "neumann"],
+                "right": ["east", "dirichlet"],
+                "bottom": ["south", "dirichlet"],
+                "top": ["north", "dirichlet"]
+            },
+            "adjacent_rooms": {
+                "left": {
+                    "rank": 1,
+                    "type": "Neumann",
+                    "start_pos": 0,
+                    "end_pos": 21
+                }
+            }
+        }
+    ]
+
+}

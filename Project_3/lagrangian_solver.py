@@ -138,6 +138,9 @@ def solve_lagrangian(A,b,n,m):
     v =  np.linalg.solve(A,b)
     return v.reshape((n,m))
 
+
+
+
 if __name__ == "__main__":
 
     n = 5
