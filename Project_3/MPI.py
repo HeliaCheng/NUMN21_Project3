@@ -127,7 +127,9 @@ def solve_lagrangian(A, b, n, m):
 
 
 class DN_solver:
-    def __init__(self, h=1 / 20, initial_temp=20, D=0.1,room_list=[],comm,rank):
+    def __init__(self, h, initial_temp, D,room_list,comm,rank):
+        self.comm=comm
+        self.rank=rank
         self.h = h
         self.D = D
         self.initial_temp = initial_temp
@@ -137,6 +139,25 @@ class DN_solver:
         self.u1=room_list[0].u
         self.u2 = room_list[1].u
         self.u3 = room_list[2].u
+        self.H = 40  # Heated boundary
+        self.WF = 5  # Window (cold boundary)
+        self.NW = 15  # Normal wall
+        # Walls room 1:
+        self.north_wall_1 = np.ones(int(1 / h)) * self.NW
+        self.east_wall_1 = np.ones(int(1 / h)) * self.NW  # Should depend on room 2
+        self.south_wall_1 = np.ones(int(1 / h)) * self.NW
+        self.west_wall_1 = np.ones(int(1 / h)) * self.H
+        # Walls room 2:
+        self.north_wall_2 = np.ones(int(1 /h)) * self.H
+        self.east_wall_2 = np.ones(int(2 / h) )* self.NW  # Should partially depend on room 3
+        self.south_wall_2 = np.ones(int(1 /h)) * self.WF
+        self.west_wall_2 = np.ones(int(2 / h)) * self.NW  # Should partially depend on room 1
+        # Walls room 3:
+        self.north_wall_3 = np.ones(int(1 / h)) * self.NW
+        self.east_wall_3 = np.ones(int(1 / h)) * self.H
+        self.south_wall_3 = np.ones(int(1 / h)) * self.NW
+        self.west_wall_3 = np.ones(int(1 / h)) * self.NW  # Should de pend on room 2
+
 #********************************************************************************************
     def update_walls(self):
         self.east_wall_1 = self.u2[self.n:, 0]
