@@ -168,121 +168,8 @@ if __name__ == "__main__":
 
     v = solve_lagrangian(A,b,n,m)
     
-    plt.imshow(v)
-    plt.show()
-
-
-
-
-class Apartment:
-    def __init__(self, delta_x=1/20, initial_temp=20, D=0.1):
-        self.delta_x = delta_x
-        self.D = D
-        self.initial_temp = initial_temp
-        self.omega = 0.8
-        self.n = int(1 / delta_x)  # Grid points per unit length
-        self.u1 = np.ones((self.n, self.n)) * self.initial_temp  # Room 1
-        self.u2 = np.ones((2 * self.n, self.n)) * self.initial_temp  # Room 2
-        self.u3 = np.ones((self.n, self.n)) * self.initial_temp  # Room 3
-        
-        self.H = 40  # Heated boundary
-        self.WF = 5  # Window (cold boundary)
-        self.NW = 15  # Normal wall
-        #Walls room 1:
-        self.north_wall_1 = np.ones(int(1/delta_x)) * self.NW
-        self.east_wall_1 = np.ones(int(1/delta_x)) * self.NW  #Should depend on room 2
-        self.south_wall_1 = np.ones(int(1/delta_x)) * self.NW
-        self.west_wall_1 = np.ones(int(1/delta_x)) * self.H
-        #Walls room 2:
-        self.north_wall_2 = np.ones(int(1/delta_x)) * self.H
-        self.east_wall_2 = np.ones(int(2/delta_x)) * self.NW #Should partially depend on room 3
-        self.south_wall_2 = np.ones(int(1/delta_x)) * self.WF
-        self.west_wall_2 = np.ones(int(2/delta_x)) * self.NW #Should partially depend on room 1
-        #Walls room 3:
-        self.north_wall_3 = np.ones(int(1/delta_x)) * self.NW
-        self.east_wall_3 = np.ones(int(1/delta_x)) * self.H
-        self.south_wall_3 = np.ones(int(1/delta_x)) * self.NW
-        self.west_wall_3 = np.ones(int(1/delta_x)) * self.NW  #Should de pend on room 2
-
-        
-    def update_walls(self):
-        self.east_wall_1 = self.u2[self.n:,0]
-        self.west_wall_2[self.n:] = self.u1[:,-1]
-        self.east_wall_2[:self.n] = self.u3[:,0]
-        self.west_wall_3 = self.u2[:self.n,-1]
-        
-    def create_matrix_and_rhs(self, u, north, south, west, east):
-        # Define boundary conditions for each room
-        if u == 1:
-            boundary = {
-                "left": (west, "dirichlet"),
-                "right": (east, "neumann"),
-                "bottom": (south, "dirichlet"),
-                "top": (north, "dirichlet")
-            }
-        elif u == 3:
-            boundary = {
-                "left": (west, "neumann"),
-                "right": (east, "dirichlet"),
-                "bottom": (south, "dirichlet"),
-                "top": (north, "dirichlet")
-            }
-        else:
-            boundary = {
-                "left": (west, "dirichlet"),
-                "right": (east, "dirichlet"),
-                "bottom": (south, "dirichlet"),
-                "top": (north, "dirichlet")
-            }
-        A = create_lagrangian_matrix(boundary, self.delta_x)
-        b = create_lagrangian_rhs(boundary, self.delta_x)
-        return A, b
-    
-    def step(self):
-        # Update boundary walls
-        self.update_walls()
-        #Solve the room with Dirichlet conditions first, then send the Neumann cdt to the other ones.
-
-        # Room 2 - the big one
-        A2, b2 = self.create_matrix_and_rhs(2, self.north_wall_2, self.south_wall_2, self.west_wall_2, self.east_wall_2)
-        un2 = solve_lagrangian(A2, b2, 2*self.n, self.n)
-
-        east_wall1_neumann = -(self.u2[self.n:,0]-self.u2[self.n:,1])/self.delta_x
-        west_wall3_neumann = -(self.u2[:self.n,-1] - self.u2[:self.n,-2])/self.delta_x
-        # Room 1 - left one
-        A1, b1 = self.create_matrix_and_rhs(1, self.north_wall_1, self.south_wall_1, self.west_wall_1, east_wall1_neumann)
-        un1 = solve_lagrangian(A1, b1, self.n, self.n)
-        
-
-        
-        # Room 3 - right one
-        A3, b3 = self.create_matrix_and_rhs(3, self.north_wall_3, self.south_wall_3, west_wall3_neumann, self.east_wall_3)
-        un3 = solve_lagrangian(A3, b3, self.n, self.n)
-        
-        # Update room temperatures
-        self.u1 = self.omega*un1 + (1-self.omega)*self.u1
-        self.u2 = self.omega*un2 + (1-self.omega)*self.u2
-        self.u3 = self.omega*un3 + (1-self.omega)*self.u3
-
-    def visualize(self):
-        U = np.ones((2 * self.n, 3 * self.n)) * (self.u2.min() + self.u2.max()) / 2
-        U[self.n:, :self.n] = self.u1
-        U[:, self.n:2 * self.n] = self.u2
-        U[:self.n, 2 * self.n:] = self.u3
-        plt.imshow(U, cmap="twilight_shifted")
-        plt.colorbar()
-        plt.show()
-
-# Instantiate and run
-apartment = Apartment(delta_x=1/40, D=0.2)
-apartment.omega = 0.8
-for i in range(20):
-    apartment.step()
-
-apartment.visualize()
-
-
-
+    #plt.imshow(v)
+    #plt.show()
 
 
 class Apartment3a:
@@ -324,15 +211,6 @@ class Apartment3a:
         self.boundaries()
         self.init_A()
 
-        
-    def update_walls(self):
-        self.east_wall_1 = self.u2[self.n:,0]
-        self.west_wall_2[self.n:] = self.u1[:,-1]
-        self.east_wall_2[:self.n] = self.u3[:,0]
-        self.west_wall_3 = self.u2[:self.n,-1]
-        if self.rooms == 4:
-            self.south_wall_3[:int(self.n*0.5)] = self.u4[0,:]
-            self.east_wall_2[self.n:int(self.n*1.5)] = self.u4[:,0]
         
     def boundaries(self):
         self.boundary1 = {
@@ -376,13 +254,12 @@ class Apartment3a:
             self.b4 = create_lagrangian_rhs(self.boundary4, self.delta_x)
 
     def step(self):
-        # Update boundary walls
-        self.update_walls()
-        self.east_wall_1 = -(self.u2[self.n:,0]-self.u2[self.n:,1])/self.delta_x
-        self.west_wall_3 = -(self.u2[:self.n,-1] - self.u2[:self.n,-2])/self.delta_x
-        if self.rooms == 4:
-            self.west_wall_4 = (self.u2[self.n:int(self.n*1.5), -1] - self.u2[self.n:int(self.n*1.5),-2])/self.delta_x
-            self.north_wall_4 = -(self.u3[-1, :int(self.n*0.5)] - self.u3[-2, :int(self.n*0.5)])/self.delta_x
+        # Update boundary walls, for Dirichlet
+        self.west_wall_2[self.n:] = self.u1[:,-1] #Dir, Wall of room 2 that connects to room 1
+        self.east_wall_2[:self.n] = self.u3[:,0] #Dir, Wall of room 2 that connects to room 3
+        if self.rooms == 4: #Dir
+            self.south_wall_3[:int(self.n*0.5)] = self.u4[0,:] #Wall of room 3 that connects to room 4
+            self.east_wall_2[self.n:int(self.n*1.5)] = self.u4[:,0]
         
         self.boundaries()
         self.update_b()
@@ -391,6 +268,9 @@ class Apartment3a:
         # Room 2 - the big one
         un2 = solve_lagrangian(self.A2, self.b2, 2*self.n, self.n)
 
+        #Compute Neumann BC, send to the left and right rooms
+        self.east_wall_1 = -(self.u2[self.n:,0]-self.u2[self.n:,1])/self.delta_x
+        self.west_wall_3 = -(self.u2[:self.n,-1] - self.u2[:self.n,-2])/self.delta_x
         
         # Room 1 - left one
         un1 = solve_lagrangian(self.A1, self.b1, self.n, self.n)
@@ -398,7 +278,10 @@ class Apartment3a:
         # Room 3 - right one
         un3 = solve_lagrangian(self.A3, self.b3, self.n, self.n)
 
+        #Compute Neumann BC, send to the 4th room
         if self.rooms == 4:
+            self.west_wall_4 = -(self.u2[self.n:int(self.n*1.5), -1] - self.u2[self.n:int(self.n*1.5),-2])/self.delta_x
+            self.north_wall_4 = (self.u3[-1, :int(self.n*0.5)] - self.u3[-2, :int(self.n*0.5)])/self.delta_x
             # Room 4 - small one
             un4 = solve_lagrangian(self.A4, self.b4, int(0.5*self.n), int(0.5*self.n))
             self.u4 = self.omega*un4 + (1-self.omega)*self.u4
@@ -438,7 +321,9 @@ class Apartment3a:
 # Instantiate and run
 apartment3a = Apartment3a(delta_x=1/40, D=0.2, rooms = 4)
 apartment3a.omega = 0.8
-for i in range(10):
+for i in range(50):
+    if i%10 == 0:
+        print(i)
     apartment3a.step()
 
 apartment3a.visualize()
