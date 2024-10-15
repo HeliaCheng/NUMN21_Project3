@@ -15,18 +15,19 @@
                 "bottom_t": "u_normal",
                 "top_t":  "u_normal"
           },
-            "adjacent_rooms": {
-                "right": {
+            "adjacent_rooms":[ {
+
                     "rank": 1,
                     "type": "Neumann",
                     "start_pos": 0,
-                    "end_pos": 21
-                }
-            }
+                    "end_pos": 1,
+                   "direction":"right"
+
+            }]
         },
         {
                 "rank": 1,
-                "dim": [1,1],
+                "dim": [2,1],
                "boundary" : {
                 "left_b": "dirichlet",
                 "right_b": "dirichlet",
@@ -39,20 +40,29 @@
                 "bottom_t": "u_window",
                 "top_t":  "u_heater"
           },
-            "adjacent_rooms": {
-                "left": {
+            "adjacent_rooms": [
+                {
                     "rank": 0,
                     "type": "Dirichlet",
-                    "start_pos": 20,
-                    "end_pos": 41
+                    "start_pos": 1,
+                    "end_pos": 2,
+                  "direction": "left"
                 },
-                "right": {
+                {
                     "rank": 2,
                     "type": "Dirichlet",
                     "start_pos": 0,
-                    "end_pos": 21
+                    "end_pos": 1,
+                   "direction": "right"
+                },
+                 {
+                    "rank": 3,
+                    "type": "Dirichlet",
+                    "start_pos": 1,
+                    "end_pos": 1.5,
+                    "direction": "right"
                 }
-            }
+            ]
         },
         {
               "rank": 2,
@@ -69,14 +79,56 @@
                 "bottom_t": "u_normal",
                 "top_t":  "u_normal"
           },
-            "adjacent_rooms": {
-                "left": {
+            "adjacent_rooms": [{
                     "rank": 1,
                     "type": "Neumann",
                     "start_pos": 0,
-                    "end_pos": 21
+                    "end_pos": 1,
+                    "direction": "left"
+
+                },
+              {
+                    "rank": 3,
+                    "type": "dirichelet",
+                    "start_pos": 0,
+                    "end_pos": 0.5,
+                    "direction": "bottom"
+
                 }
-            }
+
+            ]
+        },
+      {
+              "rank": 3,
+              "dim": [0.5,0.5],
+             "boundary" : {
+                "left_b": "neumann",
+                "right_b": "dirichelet",
+                "bottom_b": "dirichlet",
+                "top_b": "neumann"
+            },
+          "temperature": {
+            "left_t": "u_normal",
+                "right_t": "u_normal",
+                "bottom_t": "u_heater",
+                "top_t":  "u_normal"
+          },
+            "adjacent_rooms": [
+               {
+                    "rank": 1,
+                    "type": "Neumann",
+                    "start_pos": 1,
+                    "end_pos": 1.5,
+                    "direction":"left"
+                },
+                 {
+                    "rank": 2,
+                    "type": "Neumann",
+                    "start_pos": 0,
+                    "end_pos": 0.5,
+                   "direction":  "top"
+                }
+            ]
         }
     ]
 
