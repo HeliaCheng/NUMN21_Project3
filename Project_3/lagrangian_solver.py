@@ -173,7 +173,7 @@ if __name__ == "__main__":
 
 
 class Apartment3a:
-    def __init__(self, delta_x=1/20, initial_temp=20, D=0.1, rooms = 3):
+    def __init__(self, delta_x=1/20, initial_temp=20, D=0.1, rooms = 3, H = 40, WF = 5, NW = 15):
         self.delta_x = delta_x
         self.D = D
         self.initial_temp = initial_temp
@@ -184,9 +184,9 @@ class Apartment3a:
         self.u2 = np.ones((2 * self.n, self.n)) * self.initial_temp  # Room 2
         self.u3 = np.ones((self.n, self.n)) * self.initial_temp  # Room 3
         
-        self.H = 40  # Heated boundary
-        self.WF = 5  # Window (cold boundary)
-        self.NW = 15  # Normal wall
+        self.H = H  # Heated boundary
+        self.WF = WF  # Window (cold boundary)
+        self.NW = NW  # Normal wall
         #Walls room 1:
         self.north_wall_1 = np.ones(int(1/delta_x)) * self.NW
         self.east_wall_1 = np.ones(int(1/delta_x)) * self.NW  #Should depend on room 2
@@ -294,15 +294,6 @@ class Apartment3a:
         
 
     def visualize(self):
-        U = np.ones((2 * self.n, 3 * self.n)) * (self.u2.min() + self.u2.max()) / 2
-        U[self.n:, :self.n] = self.u1
-        U[:, self.n:2 * self.n] = self.u2
-        U[:self.n, 2 * self.n:] = self.u3
-        if self.rooms == 4:
-            U[self.n:int(self.n*1.5), self.n*2:int(self.n*2.5)] = self.u4
-        plt.imshow(U, cmap="twilight_shifted")
-        plt.colorbar()
-        plt.show()
         av1 = self.u1.sum()/(self.n**2)
         av2 = self.u2.sum()/(2*self.n**2)
         av3 = self.u3.sum()/(self.n**2)
@@ -317,13 +308,39 @@ class Apartment3a:
         if self.rooms == 4:
             print('Average room 4:', av4)
         print('Average appartment:', av_ap)
+        U = np.ones((2 * self.n, 3 * self.n)) * (self.u2.min() + self.u2.max()) / 2
+        U[self.n:, :self.n] = self.u1
+        U[:, self.n:2 * self.n] = self.u2
+        U[:self.n, 2 * self.n:] = self.u3
+        if self.rooms == 4:
+            U[self.n:int(self.n*1.5), self.n*2:int(self.n*2.5)] = self.u4
+        plt.imshow(U, cmap="twilight_shifted")
+        plt.hlines(self.n-0.5, -0.5, self.n-0.5, color = 'black')
+        plt.vlines(self.n-0.5, -0.5, self.n*1 - 0.5,  color = 'black')
+        plt.vlines(self.n - 0.5, self.n-0.5, self.n*2 - 0.5, linestyles='--',  color = 'black')
+        if self.rooms == 4:
+            plt.vlines(self.n*2.5 - 0.5, self.n-0.5, self.n*1.5 - 0.5,  color = 'black')
+            plt.hlines(self.n*1.5-0.5, self.n*2-0.5, self.n*2.5-0.5, color = 'black')
+            plt.vlines(self.n*2 - 0.5, -0.5, self.n*1.5 - 0.5, linestyles='--', color = 'black')
+            plt.vlines(self.n*2 - 0.5, self.n*1.5-0.5, self.n*2 - 0.5,  color = 'black')
+            plt.hlines(self.n-0.5, self.n*2.5-0.5, self.n*3-0.5, color = 'black')
+            plt.hlines(self.n-0.5, self.n*2-0.5, self.n*2.5-0.5, linestyles='--', color = 'black')
+        else:
+            plt.vlines(self.n*2 - 0.5, -0.5, self.n*1 - 0.5, linestyles='--', color = 'black')
+            plt.vlines(self.n*2 - 0.5, self.n-0.5, self.n*2 - 0.5,  color = 'black')
+            plt.hlines(self.n-0.5, self.n*2-0.5, self.n*3-0.5, color = 'black')
+        plt.colorbar()
+        plt.show()
+        
 
 # Instantiate and run
-apartment3a = Apartment3a(delta_x=1/40, D=0.2, rooms = 4)
+apartment3a = Apartment3a(delta_x=1/30, D=0.2, rooms = 4, H = 30, NW = 18)
 apartment3a.omega = 0.8
-for i in range(50):
+for i in range(10):
     if i%10 == 0:
         print(i)
     apartment3a.step()
 
 apartment3a.visualize()
+
+#Folkhälsomyndigheten: temperature 20-24 
