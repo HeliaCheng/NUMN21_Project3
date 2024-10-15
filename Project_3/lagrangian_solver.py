@@ -4,6 +4,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
 
 
 
@@ -315,6 +316,18 @@ class Apartment3a:
         if self.rooms == 4:
             U[self.n:int(self.n*1.5), self.n*2:int(self.n*2.5)] = self.u4
         plt.imshow(U, cmap="twilight_shifted")
+        Rec1 = Rectangle((-0.5,-0.5), self.n, self.n, color = 'white')
+        ax = plt.gca()
+        ax.add_patch(Rec1)
+        if self.rooms == 4:
+            Rec3 = Rectangle((self.n*2-0.5,self.n * 1.5-0.5), self.n*0.5, self.n*0.5, color = 'white')
+            Rec4 = Rectangle((self.n*2.5-0.5,self.n * 1-0.5), self.n*0.5, self.n, color = 'white')
+            ax.add_patch(Rec3)
+            ax.add_patch(Rec4)
+        else:
+            Rec2 = Rectangle((self.n*2-0.5,self.n-0.5), self.n, self.n, color = 'white')
+            ax.add_patch(Rec2)
+        
         plt.hlines(self.n-0.5, -0.5, self.n-0.5, color = 'black')
         plt.vlines(self.n-0.5, -0.5, self.n*1 - 0.5,  color = 'black')
         plt.vlines(self.n - 0.5, self.n-0.5, self.n*2 - 0.5, linestyles='--',  color = 'black')
@@ -322,21 +335,22 @@ class Apartment3a:
             plt.vlines(self.n*2.5 - 0.5, self.n-0.5, self.n*1.5 - 0.5,  color = 'black')
             plt.hlines(self.n*1.5-0.5, self.n*2-0.5, self.n*2.5-0.5, color = 'black')
             plt.vlines(self.n*2 - 0.5, -0.5, self.n*1.5 - 0.5, linestyles='--', color = 'black')
-            plt.vlines(self.n*2 - 0.5, self.n*1.5-0.5, self.n*2 - 0.5,  color = 'black')
+            plt.vlines(self.n*2 - 0.5, self.n*1.5- 0.8, self.n*2 - 0.5,  color = 'black')
             plt.hlines(self.n-0.5, self.n*2.5-0.5, self.n*3-0.5, color = 'black')
-            plt.hlines(self.n-0.5, self.n*2-0.5, self.n*2.5-0.5, linestyles='--', color = 'black')
+            plt.hlines(self.n-0.5, self.n*2-0.5, self.n*2.5, linestyles='--', color = 'black')
         else:
             plt.vlines(self.n*2 - 0.5, -0.5, self.n*1 - 0.5, linestyles='--', color = 'black')
             plt.vlines(self.n*2 - 0.5, self.n-0.5, self.n*2 - 0.5,  color = 'black')
             plt.hlines(self.n-0.5, self.n*2-0.5, self.n*3-0.5, color = 'black')
+            
         plt.colorbar()
         plt.show()
         
 
 # Instantiate and run
-apartment3a = Apartment3a(delta_x=1/30, D=0.2, rooms = 4, H = 30, NW = 18)
+apartment3a = Apartment3a(delta_x=1/40, D=0.2, rooms = 4, H = 30, NW = 18)
 apartment3a.omega = 0.8
-for i in range(10):
+for i in range(20):
     if i%10 == 0:
         print(i)
     apartment3a.step()
