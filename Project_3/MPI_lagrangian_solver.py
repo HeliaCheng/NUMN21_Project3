@@ -239,49 +239,73 @@ class Apartment3a:
             self.west_wall_4 = np.ones(int(0.5/delta_x)) * self.NW  #Should depend on room 2
         self.boundaries()
         self.init_A()
-
         
-    def boundaries(self):
-        self.boundary1 = {
-            "left": (self.west_wall_1, "dirichlet"),
-            "right": (self.east_wall_1, "neumann"),
-            "bottom": (self.south_wall_1, "dirichlet"),
-            "top": (self.north_wall_1, "dirichlet")
-        }
-        self.boundary2 = {
-            "left": (self.west_wall_2, "dirichlet"),
-            "right": (self.east_wall_2, "dirichlet"),
-            "bottom": (self.south_wall_2, "dirichlet"),
-            "top": (self.north_wall_2, "dirichlet")
-        }
-        self.boundary3 = {
-            "left": (self.west_wall_3, "neumann"),
-            "right": (self.east_wall_3, "dirichlet"),
-            "bottom": (self.south_wall_3, "dirichlet"),
-            "top": (self.north_wall_3, "dirichlet")
-        }
-        if self.rooms == 4:
-            self.boundary4 = {
-                "left": (self.west_wall_4, "neumann"),
-                "right": (self.east_wall_4, "dirichlet"),
-                "bottom": (self.south_wall_4, "dirichlet"),
-                "top": (self.north_wall_4, "neumann")
+    def boundaries(self,room_number="all"):
+        """Create the boundary dictionary for the chosen room, or all room if "all" is passed as argument by default.
+
+        Args:
+            room_number (int or str, optional): Which room to update the boundary for. Defaults to "all".
+        """
+        if(room_number == 1 or room_number=="all"):
+            self.boundary1 = {
+                "left": (self.west_wall_1, "dirichlet"),
+                "right": (self.east_wall_1, "neumann"),
+                "bottom": (self.south_wall_1, "dirichlet"),
+                "top": (self.north_wall_1, "dirichlet")
             }
+        if(room_number == 2 or room_number=="all"):
+            self.boundary2 = {
+                "left": (self.west_wall_2, "dirichlet"),
+                "right": (self.east_wall_2, "dirichlet"),
+                "bottom": (self.south_wall_2, "dirichlet"),
+                "top": (self.north_wall_2, "dirichlet")
+            }
+        if(room_number == 3 or room_number=="all"):
+            self.boundary3 = {
+                "left": (self.west_wall_3, "neumann"),
+                "right": (self.east_wall_3, "dirichlet"),
+                "bottom": (self.south_wall_3, "dirichlet"),
+                "top": (self.north_wall_3, "dirichlet")
+            }
+        if(room_number == 4 or room_number=="all"):
+            if self.rooms == 4:
+                self.boundary4 = {
+                    "left": (self.west_wall_4, "neumann"),
+                    "right": (self.east_wall_4, "dirichlet"),
+                    "bottom": (self.south_wall_4, "dirichlet"),
+                    "top": (self.north_wall_4, "neumann")
+                }
 
     def init_A(self):
+        """Initialize the matrices 
+        """
         self.A1 = create_lagrangian_matrix(self.boundary1, self.delta_x)
         self.A2 = create_lagrangian_matrix(self.boundary2, self.delta_x)
         self.A3 = create_lagrangian_matrix(self.boundary3, self.delta_x)
         if self.rooms == 4:
             self.A4 = create_lagrangian_matrix(self.boundary4, self.delta_x)
 
-    def update_b(self):
-        self.b1 = create_lagrangian_rhs(self.boundary1, self.delta_x)
-        self.b2 = create_lagrangian_rhs(self.boundary2, self.delta_x)
-        self.b3 = create_lagrangian_rhs(self.boundary3, self.delta_x)
-        if self.rooms == 4:
+    def update_b(self, room_number = "all"):
+        """Update the right hand side for the system to solve for. 
+        Note: Updating the right hand side for each room makes no sense, but its kept so that the code run,
+        
+        Args:
+            room_number (int): Which room to create the right hand side for.
+        """
+        if(room_number==1 or room_number=="all"):
+            self.b1 = create_lagrangian_rhs(self.boundary1, self.delta_x)
+        if(room_number==2 or room_number=="all"):
+            self.b2 = create_lagrangian_rhs(self.boundary2, self.delta_x)
+        if(room_number==3 or room_number=="all"):
+            self.b3 = create_lagrangian_rhs(self.boundary3, self.delta_x)
+        if(room_number==4 or room_number=="all" and self.rooms == 4):
             self.b4 = create_lagrangian_rhs(self.boundary4, self.delta_x)
 
+    def update_boundary_b(self,room_number):
+        self.update_b(room_number)
+        self.boundaries(room_number)
+        
+        
     def step(self):
         # Update boundary walls, for Dirichlet
         # self.west_wall_2[self.n:] = self.u1[:,-1] #Dir, Wall of room 2 that connects to room 1
