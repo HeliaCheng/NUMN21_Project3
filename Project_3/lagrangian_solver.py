@@ -5,8 +5,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
-
-
+from scipy.sparse import csr_array
+from scipy.sparse.linalg import spsolve
 
 def create_lagrangian_matrix(boundary,h):
     """
@@ -24,48 +24,47 @@ def create_lagrangian_matrix(boundary,h):
     right, right_cdt = boundary["right"]
     bottom, bottom_cdt = boundary["bottom"]
     top, top_cdt = boundary["top"]
+
     
     assert np.shape(left) == np.shape(right)
     assert np.shape(top) == np.shape(bottom)
     n = len(left)
     m = len(bottom)
     nm = n*m
-
-    A = np.zeros((nm,nm))
+    rows = []
+    cols = []
+    values = []
+    def add_to_lists(row,col,value):
+        """Add the value of the matrix at the specified row and column"""
+        rows.append(row)
+        cols.append(col)
+        values.append(value)
     #print(A.shape)
     #We work from row to row, column to column
     #First, interior points
     for row in range(n):
         for col in range(m):
-          A_row = np.zeros(nm)
-          center = row*m + col
-          A_row[center] = -4 #Assume Dirichlet bc by default
-          #Try to fill every point, if we are out of bound,
-          #then add the boundary condition
-          if(col != m-1):
-            A_row[center +1] = 1 #Point to the right
-          else:
-            if(right_cdt.lower() == "neumann"):
-                A_row[center] += 1
             
-          if(col != 0):
-            A_row[center -1] = 1 #Point to the left
-          else:
-            if(left_cdt.lower() == "neumann"):
-                A_row[center] += 1
-          if(row != n-1):
-            A_row[center +m] = 1 #Point below
-          else:
-            if(bottom_cdt.lower() == "neumann"):
-                A_row[center] += 1
-          if(row != 0):
-            A_row[center -m] = 1 #Point above
-          else:
-            if(top_cdt.lower() == "neumann"):
-                A_row[center] += 1
-          A[center,:] = A_row
-    A *= 1/h**2
-    return A
+          center = row*m + col
+          add_to_lists(center,center,-4)
+          #Try to fill every point, if we are not out of bound
+          if(col != m-1):#Point to the right
+            add_to_lists(center,center+1,1)
+          elif(right_cdt.lower() == "neumann"):
+              add_to_lists(center,center,1)
+          if(col != 0):#Point to the left
+            add_to_lists(center,center-1,1)
+          elif(left_cdt.lower() == "neumann"):
+              add_to_lists(center,center,1)
+          if(row != n-1): #Point below
+            add_to_lists(center,center+m,1)
+          elif(bottom_cdt.lower() == "neumann"):
+              add_to_lists(center,center,1)
+          if(row != 0): #Point above
+            add_to_lists(center,center-m,1)
+          elif(top_cdt.lower() == "neumann"):
+              add_to_lists(center,center,1)
+    return csr_array((values,(rows,cols)),shape=(nm,nm))/h**2
 
 
 
@@ -140,12 +139,13 @@ def visualize_stencil(A,i,j,n,m, h=1):
     """Visualize the stencil used, 
 
     Args:
-        A (_type_): Matrix to visualize
+        A (_type_): Matrix to visualize, in a csr format
         m (_type_): length of the left/right border
         n (_type_): length of the top/bottom border
         i (_type_): row to visualize
         j (_type_): column to visualize
     """
+    A = A.toarray()
     A_row = A[i * n + j,:]
     stencil = A_row.reshape((n,m)) * h**2
     fig, ax = plt.subplots()
@@ -155,41 +155,12 @@ def visualize_stencil(A,i,j,n,m, h=1):
     
 
 def solve_lagrangian(A,b,n,m):
-    v =  np.linalg.solve(A,b)
+    v =  spsolve(A,b)
     return v.reshape((n,m))
 
 
 
 
-if __name__ == "__main__":
-
-    n = 5
-    m = 6
-    left = np.ones(n) * 10
-    right = np.ones(n) * 1
-
-    top = np.ones(m) * 5
-    bottom = np.ones(m) * 5
-
-    h = 0.5
-
-
-
-    boundary = {"left": [left,"neumann"],
-                "right": [right,"dirichlet"],
-                "top": [top,"dirichlet"],
-                "bottom": [bottom,"dirichlet"]}
-
-
-    A =  create_lagrangian_matrix(boundary,h)
-    b = create_lagrangian_rhs(boundary,h)
-    
-
-
-    v = solve_lagrangian(A,b,n,m)
-    
-    #plt.imshow(v)
-    #plt.show()
 
 
 class Apartment3a:
@@ -366,14 +337,47 @@ class Apartment3a:
         plt.show()
         
 
-# Instantiate and run
-apartment3a = Apartment3a(delta_x=1/40, D=0.2, rooms = 4, H = 30, NW = 18)
-apartment3a.omega = 0.8
-for i in range(50):
-    if i%10 == 0:
-        print(i)
-    apartment3a.step()
 
-apartment3a.visualize()
 
-#Folkhälsomyndigheten: temperature 20-24 
+
+if __name__ == "__main__":
+
+    # n = 5
+    # m = 6
+    # left = np.ones(n) * 10
+    # right = np.ones(n) * 1
+
+    # top = np.ones(m) * 5
+    # bottom = np.ones(m) * 5
+
+    # h = 0.5
+
+
+
+    # boundary = {"left": [left,"neumann"],
+    #             "right": [right,"dirichlet"],
+    #             "top": [top,"dirichlet"],
+    #             "bottom": [bottom,"dirichlet"]}
+
+
+    # A =  create_lagrangian_matrix(boundary,h)
+    # b = create_lagrangian_rhs(boundary,h)
+    # print(A.toarray())
+
+
+    # v = solve_lagrangian(A,b,n,m)
+    
+    #plt.imshow(v)
+    #plt.show()
+
+    # Instantiate and run
+    apartment3a = Apartment3a(delta_x=1/100, D=0.2, rooms = 4, H = 30, NW = 18)
+    apartment3a.omega = 0.5
+    for i in range(100):
+        if i%10 == 0:
+            print(i)
+        apartment3a.step()
+
+    apartment3a.visualize()
+
+    #Folkhälsomyndigheten: temperature 20-24 
