@@ -203,46 +203,69 @@ class Apartment3a:
         self.init_A()
 
         
-    def boundaries(self):
-        self.boundary1 = {
-            "left": (self.west_wall_1, "dirichlet"),
-            "right": (self.east_wall_1, "neumann"),
-            "bottom": (self.south_wall_1, "dirichlet"),
-            "top": (self.north_wall_1, "dirichlet")
-        }
-        self.boundary2 = {
-            "left": (self.west_wall_2, "dirichlet"),
-            "right": (self.east_wall_2, "dirichlet"),
-            "bottom": (self.south_wall_2, "dirichlet"),
-            "top": (self.north_wall_2, "dirichlet")
-        }
-        self.boundary3 = {
-            "left": (self.west_wall_3, "neumann"),
-            "right": (self.east_wall_3, "dirichlet"),
-            "bottom": (self.south_wall_3, "dirichlet"),
-            "top": (self.north_wall_3, "dirichlet")
-        }
-        if self.rooms == 4:
-            self.boundary4 = {
-                "left": (self.west_wall_4, "neumann"),
-                "right": (self.east_wall_4, "dirichlet"),
-                "bottom": (self.south_wall_4, "dirichlet"),
-                "top": (self.north_wall_4, "neumann")
+    def boundaries(self,room_number="all"):
+        """Create the boundary dictionary for the chosen room, or all room if "all" is passed as argument by default.
+
+        Args:
+            room_number (int or str, optional): Which room to update the boundary for. Defaults to "all".
+        """
+        if(room_number == 1 or room_number=="all"):
+            self.boundary1 = {
+                "left": (self.west_wall_1, "dirichlet"),
+                "right": (self.east_wall_1, "neumann"),
+                "bottom": (self.south_wall_1, "dirichlet"),
+                "top": (self.north_wall_1, "dirichlet")
             }
+        if(room_number == 2 or room_number=="all"):
+            self.boundary2 = {
+                "left": (self.west_wall_2, "dirichlet"),
+                "right": (self.east_wall_2, "dirichlet"),
+                "bottom": (self.south_wall_2, "dirichlet"),
+                "top": (self.north_wall_2, "dirichlet")
+            }
+        if(room_number == 3 or room_number=="all"):
+            self.boundary3 = {
+                "left": (self.west_wall_3, "neumann"),
+                "right": (self.east_wall_3, "dirichlet"),
+                "bottom": (self.south_wall_3, "dirichlet"),
+                "top": (self.north_wall_3, "dirichlet")
+            }
+        if(room_number == 4 or room_number=="all"):
+            if self.rooms == 4:
+                self.boundary4 = {
+                    "left": (self.west_wall_4, "neumann"),
+                    "right": (self.east_wall_4, "dirichlet"),
+                    "bottom": (self.south_wall_4, "dirichlet"),
+                    "top": (self.north_wall_4, "neumann")
+                }
 
     def init_A(self):
+        """Initialize the matrices 
+        """
         self.A1 = create_lagrangian_matrix(self.boundary1, self.delta_x)
         self.A2 = create_lagrangian_matrix(self.boundary2, self.delta_x)
         self.A3 = create_lagrangian_matrix(self.boundary3, self.delta_x)
         if self.rooms == 4:
             self.A4 = create_lagrangian_matrix(self.boundary4, self.delta_x)
 
-    def update_b(self):
-        self.b1 = create_lagrangian_rhs(self.boundary1, self.delta_x)
-        self.b2 = create_lagrangian_rhs(self.boundary2, self.delta_x)
-        self.b3 = create_lagrangian_rhs(self.boundary3, self.delta_x)
-        if self.rooms == 4:
+    def update_b(self, room_number):
+        """Update the right hand side for the system to solve for. 
+
+        Args:
+            room_number (int): Which room to create the right hand side for.
+        """
+        if(room_number==1):
+            self.b1 = create_lagrangian_rhs(self.boundary1, self.delta_x)
+        elif(room_number==2):
+            self.b2 = create_lagrangian_rhs(self.boundary2, self.delta_x)
+        elif(room_number==3):
+            self.b3 = create_lagrangian_rhs(self.boundary3, self.delta_x)
+        elif(room_number==4):
             self.b4 = create_lagrangian_rhs(self.boundary4, self.delta_x)
+
+    def update_boundary_b(self,room_number):
+        self.update_b(room_number)
+        self.boundaries(room_number)
 
     def step(self):
         # Update boundary walls, for Dirichlet
@@ -252,9 +275,7 @@ class Apartment3a:
             self.south_wall_3[:int(self.n*0.5)] = self.u4[0,:] #Wall of room 3 that connects to room 4
             self.east_wall_2[self.n:int(self.n*1.5)] = self.u4[:,0]
         
-        self.boundaries()
-        self.update_b()
-        
+        self.update_boundary_b(room_number=2)
         #Solve the room with Dirichlet conditions first, then send the Neumann cdt to the other ones.
         # Room 2 - the big one
         un2 = solve_lagrangian(self.A2, self.b2, 2*self.n, self.n)
@@ -264,16 +285,22 @@ class Apartment3a:
         self.west_wall_3 = (self.u2[:self.n,-1] - self.u2[:self.n,-2])/self.delta_x
         
         # Room 1 - left one
+        self.update_boundary_b(room_number=1)
         un1 = solve_lagrangian(self.A1, self.b1, self.n, self.n)
         
         # Room 3 - right one
+        self.update_boundary_b(room_number=3)
         un3 = solve_lagrangian(self.A3, self.b3, self.n, self.n)
 
         #Compute Neumann BC, send to the 4th room
         if self.rooms == 4:
+            
             self.west_wall_4 = (self.u2[self.n:int(self.n*1.5), -1] - self.u2[self.n:int(self.n*1.5),-2])/self.delta_x
             self.north_wall_4 = (self.u3[-1, :int(self.n*0.5)] - self.u3[-2, :int(self.n*0.5)])/self.delta_x
             # Room 4 - small one
+            
+            self.update_boundary_b(room_number=4)
+            
             un4 = solve_lagrangian(self.A4, self.b4, int(0.5*self.n), int(0.5*self.n))
             self.u4 = self.omega*un4 + (1-self.omega)*self.u4
         
@@ -371,7 +398,7 @@ if __name__ == "__main__":
     #plt.show()
 
     # Instantiate and run
-    apartment3a = Apartment3a(delta_x=1/100, D=0.2, rooms = 4, H = 30, NW = 18)
+    apartment3a = Apartment3a(delta_x=1/40, D=0.2, rooms = 4, H = 30, NW = 18)
     apartment3a.omega = 0.5
     for i in range(100):
         if i%10 == 0:
