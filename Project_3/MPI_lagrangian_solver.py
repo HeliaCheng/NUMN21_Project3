@@ -5,8 +5,16 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
+from mpi4py import MPI
+import time
 from scipy.sparse import csr_array
 from scipy.sparse.linalg import spsolve
+
+
+
+start_time = time.time()
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank
 
 def create_lagrangian_matrix(boundary,h):
     """
@@ -162,6 +170,36 @@ def solve_lagrangian(A,b,n,m):
 
 
 
+if __name__ == "__main__":
+
+    n = 5
+    m = 6
+    left = np.ones(n) * 10
+    right = np.ones(n) * 1
+
+    top = np.ones(m) * 5
+    bottom = np.ones(m) * 5
+
+    h = 0.5
+
+
+
+    boundary = {"left": [left,"neumann"],
+                "right": [right,"dirichlet"],
+                "top": [top,"dirichlet"],
+                "bottom": [bottom,"dirichlet"]}
+
+
+    A =  create_lagrangian_matrix(boundary,h)
+    b = create_lagrangian_rhs(boundary,h)
+    
+
+
+    v = solve_lagrangian(A,b,n,m)
+    
+    #plt.imshow(v)
+    #plt.show()
+
 
 class Apartment3a:
     def __init__(self, delta_x=1/20, initial_temp=20, D=0.1, rooms = 3, H = 40, WF = 5, NW = 15):
@@ -201,7 +239,6 @@ class Apartment3a:
             self.west_wall_4 = np.ones(int(0.5/delta_x)) * self.NW  #Should depend on room 2
         self.boundaries()
         self.init_A()
-
         
     def boundaries(self,room_number="all"):
         """Create the boundary dictionary for the chosen room, or all room if "all" is passed as argument by default.
@@ -248,59 +285,126 @@ class Apartment3a:
         if self.rooms == 4:
             self.A4 = create_lagrangian_matrix(self.boundary4, self.delta_x)
 
-    def update_b(self, room_number):
+    def update_b(self, room_number = "all"):
         """Update the right hand side for the system to solve for. 
-
+        Note: Updating the right hand side for each room makes no sense, but its kept so that the code run,
+        
         Args:
             room_number (int): Which room to create the right hand side for.
         """
-        if(room_number==1):
+        if(room_number==1 or room_number=="all"):
             self.b1 = create_lagrangian_rhs(self.boundary1, self.delta_x)
-        elif(room_number==2):
+        if(room_number==2 or room_number=="all"):
             self.b2 = create_lagrangian_rhs(self.boundary2, self.delta_x)
-        elif(room_number==3):
+        if(room_number==3 or room_number=="all"):
             self.b3 = create_lagrangian_rhs(self.boundary3, self.delta_x)
-        elif(room_number==4):
+        if(room_number==4 or room_number=="all" and self.rooms == 4):
             self.b4 = create_lagrangian_rhs(self.boundary4, self.delta_x)
 
     def update_boundary_b(self,room_number):
         self.update_b(room_number)
         self.boundaries(room_number)
-
+        
+        
     def step(self):
         # Update boundary walls, for Dirichlet
-        self.west_wall_2[self.n:] = self.u1[:,-1] #Dir, Wall of room 2 that connects to room 1
-        self.east_wall_2[:self.n] = self.u3[:,0] #Dir, Wall of room 2 that connects to room 3
-        if self.rooms == 4: #Dir
-            self.south_wall_3[:int(self.n*0.5)] = self.u4[0,:] #Wall of room 3 that connects to room 4
-            self.east_wall_2[self.n:int(self.n*1.5)] = self.u4[:,0]
+        # self.west_wall_2[self.n:] = self.u1[:,-1] #Dir, Wall of room 2 that connects to room 1
+        # self.east_wall_2[:self.n] = self.u3[:,0] #Dir, Wall of room 2 that connects to room 3
         
-        self.update_boundary_b(room_number=2)
+        # first means determine u2^k+1 given u1^k & u3^k
+        first1_TAG = 1
+        first2_TAG = 2
+
+        if rank == 1:
+            data1 = self.u1[:,-1]
+            data2 = self.u3[:,0]
+            comm.send(data1, dest=2, tag=first1_TAG)
+            comm.send(data2, dest=2, tag=first2_TAG)
+
+        if rank == 2:
+            wall1 = self.west_wall_2[self.n:]
+            wall2 = self.west_wall_2[:self.n]
+            comm.recv(wall1, source=1, tag = first1_TAG)  
+            comm.recv(wall2, source=1, tag = first2_TAG)  
+
+        ##################################################
+        if self.rooms == 4: #Dir
+
+            third1_TAG = 5
+            third2_TAG = 6
+
+            # self.south_wall_3[:int(self.n*0.5)] = self.u4[0,:] #Wall of room 3 that connects to room 4
+            # self.east_wall_2[self.n:int(self.n*1.5)] = self.u4[:,0]
+
+            if rank == 5:
+                data1 = self.u4[0,:]
+                data2 = self.u4[:,0]
+                comm.send(data1, dest=6, tag=third1_TAG)
+                comm.send(data2, dest=6, tag=third2_TAG)
+
+            if rank == 6:
+                wall1 = self.south_wall_3[:int(self.n*0.5)]
+                wall2 = self.east_wall_2[self.n:int(self.n*1.5)]
+                comm.recv(wall1, source=5, tag = third1_TAG)  
+                comm.recv(wall2, source=5, tag = third2_TAG)  
+
+        
+        self.boundaries()
+        self.update_b()
+        
         #Solve the room with Dirichlet conditions first, then send the Neumann cdt to the other ones.
         # Room 2 - the big one
         un2 = solve_lagrangian(self.A2, self.b2, 2*self.n, self.n)
 
         #Compute Neumann BC, send to the left and right rooms
-        self.east_wall_1 = -(self.u2[self.n:,0]-self.u2[self.n:,1])/self.delta_x
-        self.west_wall_3 = (self.u2[:self.n,-1] - self.u2[:self.n,-2])/self.delta_x
+        # self.east_wall_1 = -(self.u2[self.n:,0]-self.u2[self.n:,1])/self.delta_x
+        # self.west_wall_3 = -(self.u2[:self.n,-1] - self.u2[:self.n,-2])/self.delta_x
+
+        # second means determine u1^k+1 & u3^k+1 given u2^k+1
+        second1_TAG = 3
+        second2_TAG = 4
+
+        if rank == 3:
+            data1 = -(self.u2[self.n:,0]-self.u2[self.n:,1])/self.delta_x
+            data2 = (self.u2[:self.n,-1] - self.u2[:self.n,-2])/self.delta_x
+            comm.send(data1, dest=4, tag=second1_TAG)
+            comm.send(data2, dest=4, tag=second2_TAG)
+
+        if rank == 4:
+            wall1 = self.east_wall_1
+            wall2 = self.east_wall_3
+            comm.recv(wall1, source=3, tag = second1_TAG)  
+            comm.recv(wall2, source=3, tag = second2_TAG)
         
         # Room 1 - left one
-        self.update_boundary_b(room_number=1)
         un1 = solve_lagrangian(self.A1, self.b1, self.n, self.n)
         
         # Room 3 - right one
-        self.update_boundary_b(room_number=3)
         un3 = solve_lagrangian(self.A3, self.b3, self.n, self.n)
 
+        #################################################
         #Compute Neumann BC, send to the 4th room
         if self.rooms == 4:
             
-            self.west_wall_4 = (self.u2[self.n:int(self.n*1.5), -1] - self.u2[self.n:int(self.n*1.5),-2])/self.delta_x
-            self.north_wall_4 = (self.u3[-1, :int(self.n*0.5)] - self.u3[-2, :int(self.n*0.5)])/self.delta_x
+            # self.west_wall_4 = -(self.u2[self.n:int(self.n*1.5), -1] - self.u2[self.n:int(self.n*1.5),-2])/self.delta_x
+            # self.north_wall_4 = (self.u3[-1, :int(self.n*0.5)] - self.u3[-2, :int(self.n*0.5)])/self.delta_x
+            
+            fourth1_TAG = 7
+            fourth2_TAG = 8
+
+            if rank == 7:
+                data1 = (self.u2[self.n:int(self.n*1.5), -1] - self.u2[self.n:int(self.n*1.5),-2])/self.delta_x
+                data2 =  (self.u3[-1, :int(self.n*0.5)] - self.u3[-2, :int(self.n*0.5)])/self.delta_x
+                comm.send(data1, dest=8, tag=fourth1_TAG)
+                comm.send(data2, dest=8, tag=fourth2_TAG)
+
+            if rank == 8:
+                wall1 = self.west_wall_4
+                wall2 = self.north_wall_4
+                comm.recv(wall1, source=7, tag = fourth1_TAG)  
+                comm.recv(wall2, source=7, tag = fourth2_TAG)
+            
             # Room 4 - small one
-            
-            self.update_boundary_b(room_number=4)
-            
             un4 = solve_lagrangian(self.A4, self.b4, int(0.5*self.n), int(0.5*self.n))
             self.u4 = self.omega*un4 + (1-self.omega)*self.u4
         
@@ -364,47 +468,17 @@ class Apartment3a:
         plt.show()
         
 
+# Instantiate and run
+apartment3a = Apartment3a(delta_x=1/40, D=0.2, rooms = 4, H = 30, NW = 18)
+apartment3a.omega = 0.8
+for i in range(50):
+    if i%10 == 0:
+        print(i)
+    apartment3a.step()
 
+end_time = time.time()
+print("Elapsed time:", end_time - start_time, "seconds")
 
+apartment3a.visualize()
 
-if __name__ == "__main__":
-
-    # n = 5
-    # m = 6
-    # left = np.ones(n) * 10
-    # right = np.ones(n) * 1
-
-    # top = np.ones(m) * 5
-    # bottom = np.ones(m) * 5
-
-    # h = 0.5
-
-
-
-    # boundary = {"left": [left,"neumann"],
-    #             "right": [right,"dirichlet"],
-    #             "top": [top,"dirichlet"],
-    #             "bottom": [bottom,"dirichlet"]}
-
-
-    # A =  create_lagrangian_matrix(boundary,h)
-    # b = create_lagrangian_rhs(boundary,h)
-    # print(A.toarray())
-
-
-    # v = solve_lagrangian(A,b,n,m)
-    
-    #plt.imshow(v)
-    #plt.show()
-
-    # Instantiate and run
-    apartment3a = Apartment3a(delta_x=1/40, D=0.2, rooms = 4, H = 30, NW = 18)
-    apartment3a.omega = 0.5
-    for i in range(100):
-        if i%10 == 0:
-            print(i)
-        apartment3a.step()
-
-    apartment3a.visualize()
-
-    #Folkhälsomyndigheten: temperature 20-24 
+#Folkhälsomyndigheten: temperature 20-24 
